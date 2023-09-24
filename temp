@@ -1,0 +1,86 @@
+const userChangePassword = async (request, response) => {
+  //getting the some details from user
+  const { oldPassword, newPassword, confirmPassword } = request.body;
+
+  //checking all fields are there or not
+  if (!(oldPassword && newPassword && confirmPassword)) {
+    return response
+      .status(400)
+      .json({ status: "Failed", message: "All Fields are required" });
+  }
+
+  //comparing the old password is in DB or not
+  if (!(await bcyrpt.compare(oldPassword, request.user.password))) {
+    return response.status(400).json({
+      status: "Failed",
+      message: "You should enter correct old password",
+    });
+  }
+
+  //checking confirmpassword and password is same or not
+  if (newPassword !== confirmPassword) {
+    return response.status(400).json({
+      status: "Failed",
+      message: "password and confirmPassword should be same",
+    });
+  }
+  //Encrypting the new password
+  const encryptedPassword = await bcyrpt.hash(newPassword, 10);
+
+  //Saving the new password into DB
+  try {
+    await userModel.findByIdAndUpdate(request.user._id, {
+      $set: { password: encryptedPassword },
+    });
+    return response
+      .status(200)
+      .json({ status: "success", message: `your password got updated` });
+  } catch (error) {
+    return response
+      .status(400)
+      .json({ status: "Failed", message: "Error in password updating" });
+  }
+};
+
+
+//@desc     updating the user details
+//@route    PUT/api/admin/user/update/user
+//@access   protected
+const updateUser = async (request, response) => {
+    
+    // Here we getting the new details from the body which has to be updated
+    const { newEmail, newPassword } = request.body
+    // Here we getting the _id of the user which has to be updted from DB
+    const user = await userModel.findById(request.params.id)
+    //if the password is comming from the body then we encrypting in it 
+    if(newPassword){let encodedPassword = await bcyrpt.hash(newPassword, 10)}//change
+
+    // here we updating it
+    try{ // change the logic
+        if(newEmail && newPassword){
+            user.email = newEmail
+            user.password = encodedPassword
+            const updatedUser = await user.save()
+            return response.status(200).json({status:"success", message:"user Updated"})
+        }
+        else if(newEmail || newPassword){
+            if(newEmail) 
+            {
+                user.email = newEmail
+                const updatedUser = await user.save()
+                return response.status(200).json({status:"success", message:"user Updated"})
+            }
+            else{
+                user.password = encodedPassword
+                const updatedUser = await user.save()
+                return response.status(200).json({status:"success", message:"user Updated"})
+            }
+        }
+        else{
+            return response.status(200).json({status:"Failed", message:"Details are required for updation"})
+        }
+    }catch(error){
+        return response.status(409).json({status:"Failed", message:"Some Error occured in updating the user"})
+    }
+}
+
